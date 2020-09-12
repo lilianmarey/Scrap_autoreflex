@@ -1,9 +1,8 @@
 """
-scrap_links: program that scraps all the links of car offers of the website Autoreflex
+scrap_links: program that scraps all the links of car offers from the website Autoreflex
 =============================================
 .. moduleauthor:: Lilian MAREY <lilian.marey@ensae.fr>
 """
-
 import numpy as np
 import matplotlib.pyplot as plt
 

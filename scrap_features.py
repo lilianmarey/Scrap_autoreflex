@@ -1,9 +1,8 @@
 """
-scrap_features: program that scraps several features of european car buyer Autoreflex
+scrap_features: program that scraps several features from european car buyer Autoreflex
 =============================================
 .. moduleauthor:: Lilian MAREY <lilian.marey@ensae.fr>
 """
-
 import csv
 import numpy as np
 
@@ -14,218 +13,302 @@ import urllib
 from urllib import request
 import bs4
 
+##########################################
+#Creation of a timer which will raises Exception Error if 
+# a step of the program is too long
 
-#On considère 2 lots d'information sur les annonces : le lot 1 composé de marque, modele, segment, prix 
-#(scrappés dans la même balise), le lot 2 composé de kilometrage, annee, lieu, carburant, boite, puissance.
-#On recuperera aussi le nom du vendeur et les équipements
-
-def trouve_1(s):
+def handler(signum, frame):
+    """Defines the overtime message
+    """
+    raise Exception("Too long execution time")
     
-    """Traite le texte pour trouver les caractéristiques du lot 1"""
-    
-    for i in range(len(s)-7):
-        
-        m = s[i:i+6]
-        se = s[i:i+7]
-        p = s[i:i+4]
+signal.signal(signal.SIGALRM, handler)
 
-        if m == "marque":
-            marque = ""
+##########################################
+#Scraping part :
+# We consider 2 batches of information on a offer web page : 
+# batch 1 composed of brand, model, segment, price (scraped in the same HTML tag).
+# batch 2 is composed of mileage, year, location, fuel, gearbox, power.
+# We will also scrap the name of the seller and the equipment
+
+def text_processing_batch_1(scraped_text):
+    """Extract from text features of batch 1
+
+    Parameters:
+    -----------
+    scraped_text : str
+        text scraped thanks to find_batch_1 function
+       
+    Return:
+    --------
+        batch : str list
+            the list of all the features (brand, model, segment, price)
+    """
+    for i in range(len(scraped_text) - 7):
+        brand_model_tag = scraped_text[i: i + 6]
+        segment_tag = scraped_text[i: i + 7]
+        price_tag = scraped_text[i: i + 4]
+
+        if brand_model_tag == "marque":
+            brand = ""
+            
+            j = i + 7
+
+            while scraped_text[j] != ";":
+                brand += scraped_text[j]
+
+                j += 1
+                
+        elif brand_model_tag == "modele":
+            model = ""
             
             j = i + 7
             
-            while s[j] != ";":
-                marque+=s[j]
-                j+=1
+            while scraped_text[j] != ";":
+                model += scraped_text[j]
+
+                j += 1 
                 
-        elif m == "modele":
-            modele = ""
-            
-            j = i + 7
-            
-            while s[j] != ";":
-                modele+=s[j]
-                j+=1
-                
-        if se == "segment":
+        if segment_tag == "segment":
             segment = ""
             
             j = i + 8
             
-            while s[j] != ";":
-                segment+=s[j]
-                j+=1
+            while scraped_text[j] != ";":
+                segment += scraped_text[j]
+
+                j += 1
             
-        if p == "prix":
-            prix = ""
+        if price_tag == "prix":
+            price = ""
             
             j = i + 5
             
-            while s[j] != "'":
-                prix+=s[j]
-                j+=1
+            while scraped_text[j] != "'":
+                price += scraped_text[j]
+
+                j += 1
+    
+    batch = [brand, model, segment, price]
                   
-    return [marque, modele, segment, prix]
+    return batch
             
-            
-def trouve_variables_lot_1(page):
-    
-    a = page.findAll("script", {"type" : "text/javascript"})
-    s = str(a[4])
-    
-    return trouve_1(s)
+def find_batch_1(page):
+    """Scrapes and process brute web page text for finding batch 1 features
 
-def trouve_2(s):
-    
-    """Traite le texte pour trouver les caractéristiques du lot 2"""
-    
-    for i in range(len(s)-15):
-            
-            km = s[i:i+9]
-            an = s[i:i+12]
-            li = s[i:i+15]
-            en = s[i:i+13]
-            ge = s[i:i+11]
-            po = s[i:i+12]
+    Parameters:
+    -----------
+    page : web page (got by bs4.BeautifulSoup function)
+        page on which I look for batch 1 information
+    Return:
+    --------
+        batch_1 : str list
+            the list of the found features (brand, model, segment, price)
+    """
+    digger_1 = page.findAll("script", {"type" : "text/javascript"})
+    digger_2 = str(digger_1[4])
+    batch_1 = text_processing_batch_1(digger_2)
 
-            if km == "search-km":
-                kilometrage = ""
+    return batch_1
+
+def text_processing_batch_2(scraped_text):
+    """Extract from text features of batch 2 
+
+    Parameters:
+    -----------
+    scraped_text : str
+        text scraped thanks to find_batch_2 function
+       
+    Return:
+    --------
+        batch : str list
+            the list of all the features (mileage, year, location, fuel, gearbox, power)
+    """
+    for i in range(len(scraped_text)-15):
+            mileage_tag = scraped_text[i:i+9]
+            year_tag = scraped_text[i:i+12]
+            location_tag = scraped_text[i:i+15]
+            fuel_tag = scraped_text[i:i+13]
+            gearbox_tag = scraped_text[i:i+11]
+            power_tag = scraped_text[i:i+12]
+
+            if mileage_tag == "search-km":
+                mileage = ""
             
                 j = i + 15
             
-                while s[j+1] != "K":
-                    kilometrage+=s[j]
-                    j+=1
+                while scraped_text[j+1] != "K":
+                    mileage += scraped_text[j]
+
+                    j += 1
                     
-            if an == "search-annee":
-                annee = ""
+            if year_tag == "search-annee":
+                year = ""
             
                 j = i + 18
             
-                while s[j] != "<":
-                    annee+=s[j]
-                    j+=1
+                while scraped_text[j] != "<":
+                    year += scraped_text[j]
+                    j += 1  
                 
-            if li == "search-location":
-                lieu = ""
+            if location_tag == "search-location":
+                location = ""
 
                 j = i + 21
 
-                while s[j] != "<":
-                    lieu+=s[j]
-                    j+=1
+                while scraped_text[j] != "<":
+                    location += scraped_text[j]
+
+                    j += 1
                 
-            if en == "search-engine":
-                carburant = ""
+            if fuel_tag == "search-engine":
+                fuel = ""
 
                 j = i + 19
 
-                while s[j] != "<":
-                    carburant+=s[j]
-                    j+=1
+                while scraped_text[j] != "<":
+                    fuel += scraped_text[j]
 
+                    j += 1
                 
-            if ge == "search-gear":
-                boite = ""
+            if gearbox_tag == "search-gear":
+                gearbox = ""
 
                 j = i + 17
 
-                while s[j] != "<":
-                    boite+=s[j]
-                    j+=1
+                while scraped_text[j] != "<":
+                    gearbox += scraped_text[j]
+                    
+                    j += 1
             
-            if po == "search-power":
-                puissance = ""
+            if power_tag == "search-power":
+                power = ""
 
                 j = i + 18
 
-                while s[j] != "<":
-                    puissance+=s[j]
+                while scraped_text[j] != "<":
+                    power+=scraped_text[j]
+
                     j+=1
                     
-    return [kilometrage, annee, lieu, carburant, boite, puissance]
+    return [mileage, year, location, fuel, gearbox, power]
                 
-    
-                
-def trouve_variables_lot_2(page):
-    
-    a = page.findAll("div", {"class" : "specs"})[0]
-    
-    return trouve_2(str(a.findAll("li", {"style" : "white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"})))
+def find_batch_2(page):
+    """Scrapes and process brute web page text for finding batch 2 features
 
-def trouve_equipements(page):
-    
-    """Recupere la liste des équipements de la voiture"""
-    
+    Parameters:
+    -----------
+    page : web page (got by bs4.BeautifulSoup function)
+        page on which I look for batch 1 information
+
+    Return:
+    --------
+        batch_2 : str list
+            the list of the found features (brand, model, segment, price)
+    """
+    digger_1 = page.findAll("div", {"class" : "specs"})[0]
+    digger_2 = digger_1.findAll("li", {"style" : "white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"})
+    batch_2 = text_processing_batch_2(str(digger_2))
+
+    return batch_2
+
+def find_equipments_feature(page):
+    """Scrapes and process brute web page text for finding equipments feature
+
+    Parameters:
+    -----------
+    page : web page (got by bs4.BeautifulSoup function)
+        page on which I look for equipments information
+
+    Return:
+    --------
+        equipments : str list
+            the list of the equipments
+    """
     try:
-        s = str(page.findAll("ul", {"class" : "small-block-grid-1 large-block-grid-2"})[0])
+        page = str(page.findAll("ul", {"class" : "small-block-grid-1 large-block-grid-2"})[0])
+
     except:
         return []
-    equipements = []
+
+    equipments = []
     
-    for i in range(len(s)-5):
-        eq = s[i:i+6]
+    for i in range(len(page) - 5):
+        equipments_tag = page[i: i + 6]
         
-        if eq == "title=":
+        if equipments_tag == "title=":
             item = ""
+
             j = i + 7
 
-            while s[j+1] != ">":
-                item+=s[j]
-                j+=1
+            while page[j+1] != ">":
+                item += page[j]
                 
-            equipements.append(item)
+                j += 1
+                
+            equipments.append(item)
             
-    return equipements
+    return equipments
 
-def trouve_variables(URL):
-    
-    """Recupère toutes les caractéristiques de la voiture (lots 1 et 2, vendeur et equipements)"""
-    
+def find_all_features(URL):
+    """Scrapes all the wanted feature from an offer web page
+
+    Parameters:
+    -----------
+    URL : str
+        the URL of the offer web page
+    Return:
+    --------
+        features_list : str list
+            the list of all the found features
+    """    
+
     request_text = request.urlopen(URL).read()
     page = bs4.BeautifulSoup(request_text, "lxml")
     
-    lot_1 = trouve_variables_lot_1(page)
-    lot_2 = trouve_variables_lot_2(page)
+    batch_1 = find_batch_1(page)
+    batch_2 = find_batch_2(page)
     
-    s = page.findAll("div", {"class" : "small-12 large-5 columns mg-bottom"})[0].findAll("h3")[0]
-    vendeur = str(s)
+    digger_1 = page.findAll("div", {"class" : "small-12 large-5 columns mg-bottom"})[0].findAll("h3")[0]
+    digger_2 = str(digger_1)
+    seller = digger_2[4: len(digger_2) - 5]
     
-    equipements = trouve_equipements(page)
+    equipments = find_equipments_feature(page)
     
-    return lot_1 + lot_2 + [vendeur[4:len(vendeur)-5]] + [equipements]
+    features_list = batch_1 + batch_2 + [seller] + [equipments]
 
-#Lecture du fichier des url obtenu précedemment
-with open('/Users/lilianmarey/Desktop/Python/Reezocar/liste_url0.txt', 'r') as f:
-    liste_url = f.readlines()
+    return features_list
 
-#Creation d'un timer pour éviter de passer du temps sur des annonces qui n'existent plus
+def build_csv(url_list):
+    """Build a csv file containing the different features for all the scraped ads 
 
-def handler(signum, frame):
-    
-    """Ce timer déclenche une erreur si un programme s'exécute pendant trop longtemps"""
-    
-    raise Exception("end of time")
-    
-signal.signal(signal.SIGALRM, handler)
-
-def consruit_fichier(liste_url):
-    
-    """Construit un fichier csv contenant les différentes variables pour toutes les annonces récupérées"""
-    
-    with open('/Users/lilianmarey/Desktop/Python/Reezocar/data.csv', 'w', newline='') as file:
+    Parameters:
+    -----------
+    url_list : str list
+        list of url of offer web pages
+    """
+    with open('Features/data.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["Marque", "Modèle", "Segment", "Prix", "Kilometrage", "Date de production", "Lieu", 
-                     "Type de carburant", "Type de boîte de vitesse", "Puissance", "Vendeur", "Equipements", "url"])
+
+        writer.writerow(["Brand", "Model", "Segment", "Price", "Mileage", "Year", "Location", 
+                     "Fuel", "Gearbox", "Power", "Seller", "Equipments", "url"])
     
-        for i in range(len(liste_url)):
-            print("Numéro de l'annonce traitée : ",i)
+        for i in range(len(url_list)):
+            print("Offer processed number : ", i)
             
             try:
                 signal.alarm(10)
-                writer.writerow(trouve_variables(liste_url[i][:-1])+[liste_url[i]])
+                writer.writerow(find_all_features(url_list[i][:-1]) + [url_list[i]])
                 signal.alarm(0)
-            except:
-                print(i,"except")
 
-consruit_fichier(liste_url)
+            except:
+                print(i, "Error, this Offer has been skipped")
+
+##########################################
+# Importing links and
+# building csv file containing all the features
+
+with open('Links/url_list_v0.txt', 'r') as f:
+    url_list = f.readlines()
+
+build_csv(url_list)
