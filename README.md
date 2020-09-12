@@ -8,18 +8,20 @@ This projects aims at scraping all the features of all the offers that can be fo
 
 # STRUCTURE OF PROJECT
 
-Scrap_autoreflex
+COVID19_Trends_by_Age
+
     |
     |
-    |---- scrap_links.py        : Script that creates a text file containing all the scraped offer pages links
+    |---- scrap_links.py                : Script that creates a text file containing all the scraped offer pages links
     |
-    |---- Links                 : Folder where text file containing all the links are put
+    |---- Links                         : dFolder where text file containing all the links are put
     |
-    |---- scrap_features.py     : Script that creates a CSV file containing features of scrapped offer pages
+    |---- scrap_features.py             : Script that creates a CSV file containing features of scrapped offer pages
     |
-    |---- Features              : Folder where CSV file containing all the features are put
+    |---- Features                      : Folder where CSV file containing all the features are put
     |
     |____ README.md      
+  
 
 
 
